@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-data-init
+  namespace: postgres
+  labels:
+    app: postgres-init
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:15
+        command: 
+          - sh
+          - -c
+          - |
+            until pg_isready -h postgres-service -p 5432 -U postgres; do
+              echo "Waiting for PostgreSQL to be ready..."
+              sleep 2
+            done
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+      restartPolicy: Never
+      containers:
+      - name: postgres-init
+        image: postgres:15
+        env:
+        - name: PGHOST
+          value: "postgres-service"
+        - name: PGPORT
+          value: "5432"
+        - name: PGUSER
+          value: "postgres"
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        - name: PGDATABASE
+          value: "postgres"
+        command: ["psql", "-f", "/scripts/init.sql"]
+        volumeMounts:
+        - name: init-script
+          mountPath: /scripts
+      volumes:
+      - name: init-script
+        configMap:
+          name: postgres-init-script

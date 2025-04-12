@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-script
+  namespace: postgres
+data:
+  init.sql: |
+    -- 创建 test 表
+    CREATE TABLE IF NOT EXISTS test (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(100),
+      email VARCHAR(100),
+      age INT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      is_active BOOLEAN DEFAULT true,
+      salary DECIMAL(10, 2),
+      department VARCHAR(50)
+    );
+    
+    -- 插入 1000 条随机数据
+    DO $$
+    BEGIN
+      FOR i IN 1..1000 LOOP
+        INSERT INTO test (name, email, age, is_active, salary, department)
+        VALUES (
+          'User-' || i,
+          'user' || i || '@example.com',
+          (random() * 50 + 18)::integer,
+          (random() > 0.3),
+          (random() * 90000 + 30000)::numeric(10,2),
+          CASE (i % 5)
+            WHEN 0 THEN 'Engineering'
+            WHEN 1 THEN 'Marketing'
+            WHEN 2 THEN 'Sales'
+            WHEN 3 THEN 'HR'
+            ELSE 'Finance'
+          END
+        );
+      END LOOP;
+    END $$;

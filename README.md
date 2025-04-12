@@ -7,9 +7,9 @@ kubectl create ns postgres
 
 helm -n postgres list
 
-helm repo add postgres-quiz http://yunwei361.github.io/postgres-quiz/
+helm repo add postgres-quiz https://yunwei361.github.io/postgres-quiz/
 
-helm -n postgres install postgres15 postgres-quiz/postgres15
+helm -n postgres install postgres15 postgres-quiz/postgresql15
 ```
 
 
@@ -22,6 +22,7 @@ helm -n postgres install postgres15 postgres-quiz/postgres15
 kubectl create ns postgres
 
 # 部署Postgres15
+cd backup-manifests
 kubectl create -f secret.yaml
 kubectl create -f sts.yaml
 kubectl create -f svc.yaml

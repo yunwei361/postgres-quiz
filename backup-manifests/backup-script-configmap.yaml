@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-backup-script
+  namespace: postgres
+data:
+  backup.sh: |
+    #!/bin/sh
+    set -e
+
+    # 设置上海时区
+    export TZ=Asia/Shanghai
+    
+    # 设置变量
+    BACKUP_DIR="/backups"
+    TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+    BACKUP_FILE="$BACKUP_DIR/test_table_$TIMESTAMP.dump"
+    MAX_BACKUPS=10
+    
+    # 创建备份目录
+    mkdir -p $BACKUP_DIR
+    
+    # 执行备份
+    echo "Backing up test table to $BACKUP_FILE"
+    pg_dump -h $PGHOST -p $PGPORT -U $PGUSER -d $PGDATABASE \
+      -t test -Fc -f $BACKUP_FILE
+    
+    # 检查备份是否成功
+    if [ $? -eq 0 ]; then
+      echo "Backup completed successfully"
+      
+      # 清理旧备份，只保留最近10个
+      cd $BACKUP_DIR
+      ls -t test_table_*.dump | tail -n +$(($MAX_BACKUPS + 1)) | xargs rm -f
+      echo "Old backups cleaned up"
+    else
+      echo "Backup failed"
+      exit 1
+    fi

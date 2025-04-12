@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: postgres
+spec:
+  schedule: "*/5 * * * *"        # 每5分钟运行一次
+  successfulJobsHistoryLimit: 3  # 保留3个成功的Job记录
+  failedJobsHistoryLimit: 1      # 保留1个失败的Job记录
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: postgres-backup
+            image: postgres:15
+            env:
+            - name: PGHOST
+              value: "postgres-service"  # 替换为你的PostgreSQL服务名称
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              value: "postgres"          # 替换为你的PostgreSQL用户名
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret  # 替换为包含密码的Secret名称
+                  key: password
+            - name: PGDATABASE
+              value: "postgres"          # 替换为你的数据库名称
+            command: ["/bin/sh", "/scripts/backup.sh"]
+            volumeMounts:
+            - name: backup-script
+              mountPath: /scripts
+            - name: backup-storage
+              mountPath: /backups
+          volumes:
+          - name: backup-script
+            configMap:
+              name: postgres-backup-script
+              defaultMode: 0777
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: postgres-backup-pvc
