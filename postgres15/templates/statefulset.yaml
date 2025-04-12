@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: {{ .Values.namespace.name }}
+spec:
+  serviceName: "postgres"
+  replicas: {{ .Values.postgresql.replicas }}
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: {{ .Values.postgresql.image }}
+        ports:
+        - containerPort: {{ .Values.postgresql.port }}
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        - name: TZ
+          value: {{ .Values.postgresql.timezone }}
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: localtime
+          mountPath: /etc/localtime
+          readOnly: true
+      volumes:
+      - name: localtime
+        hostPath:
+          path: /etc/localtime
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      storageClassName: {{ .Values.postgresql.storage.class }}
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: {{ .Values.postgresql.storage.size }}

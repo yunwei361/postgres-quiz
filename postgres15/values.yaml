@@ -1,0 +1,32 @@
+# Global settings
+namespace:
+  name: postgres
+  labels:
+    name: postgres
+
+# PostgreSQL settings
+postgresql:
+  image: postgres:15
+  replicas: 1
+  password: "123456"
+  port: 5432
+  nodePort: 30432
+  timezone: Asia/Shanghai
+  storage:
+    class: nfs-client
+    size: 5Gi
+
+# Initialization settings
+init:
+  enabled: true
+  tableName: test
+  recordCount: 1000
+
+# Backup settings
+backup:
+  enabled: true
+  schedule: "*/5 * * * *"
+  maxBackups: 10
+  storage:
+    class: nfs-client
+    size: 1Gi

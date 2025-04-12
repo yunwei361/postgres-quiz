@@ -1,0 +1,41 @@
+{{- if .Values.backup.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-backup-script
+  namespace: {{ .Values.namespace.name }}
+data:
+  backup.sh: |-
+    #!/bin/sh
+    set -e
+
+    # Set timezone
+    export TZ={{ .Values.postgresql.timezone }}
+    
+    # Set variables
+    BACKUP_DIR="/backups"
+    TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+    BACKUP_FILE="$BACKUP_DIR/{{ .Values.init.tableName }}_$TIMESTAMP.dump"
+    MAX_BACKUPS={{ .Values.backup.maxBackups }}
+    
+    # Create backup directory
+    mkdir -p $BACKUP_DIR
+    
+    # Execute backup
+    echo "Backing up {{ .Values.init.tableName }} table to $BACKUP_FILE"
+    pg_dump -h $PGHOST -p $PGPORT -U $PGUSER -d $PGDATABASE \
+      -t {{ .Values.init.tableName }} -Fc -f $BACKUP_FILE
+    
+    # Check backup status
+    if [ $? -eq 0 ]; then
+      echo "Backup completed successfully"
+      
+      # Clean up old backups
+      cd $BACKUP_DIR
+      ls -t {{ .Values.init.tableName }}_*.dump | tail -n +$(($MAX_BACKUPS + 1)) | xargs rm -f
+      echo "Old backups cleaned up"
+    else
+      echo "Backup failed"
+      exit 1
+    fi
+{{- end }}
